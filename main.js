@@ -106,8 +106,14 @@ function metQuota(date, activeTime) {
 // shiftObj: (typeof object) has driverID, driverName, date, startTime, endTime
 // Returns: object with 10 properties or empty object {}
 // ============================================================
+
+//You need to search for fs.readFileSync() and fs.writeFileSync() functions in order to read and write from a text file.
+
+
 function addShiftRecord(textFile, shiftObj) {
-    // TODO: Implement this function
+
+    let tf = fs.readFileSync(textFile, 'utf8');
+    
 }
 
 // ============================================================
