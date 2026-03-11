@@ -84,7 +84,20 @@ function getActiveTime(shiftDuration, idleTime) {
 // Returns: boolean
 // ============================================================
 function metQuota(date, activeTime) {
-    // TODO: Implement this function
+    let at = time2sec(activeTime);
+
+    const normalQuota = 8*3600 + 24*60;
+    const eidQuota = 6*3600;
+
+    let quota;
+
+    if (date >= "2025-04-10" && date <= "2025-04-30") {
+        quota = eidQuota;
+    } else {
+        quota = normalQuota;
+    }
+
+    return at >= quota;
 }
 
 // ============================================================
