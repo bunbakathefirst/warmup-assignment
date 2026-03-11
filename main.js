@@ -6,8 +6,41 @@ const fs = require("fs");
 // endTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
 // Returns: string formatted as h:mm:ss
 // ============================================================
+
+function hr2sec(time){
+    let period = time.slice(-2);
+    time = time.slice(0, -3);
+
+    let [h,m,s] = time.split(':').map(Number);
+
+    if(period === 'pm' && h !== 12){
+        h += 12;
+    }
+    if(period === 'am' && h === 12){
+        h = 0;
+    }
+
+    return h*3600 + m*60 + s;
+}
+function sec2hr(sec){
+    const z = n => (n < 10 ? '0' : '') + n; //check later!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    const hrs = (sec / 3600 | 0);
+    const min = (sec % 3600 / 60 | 0);
+    const secs = (sec % 60 | 0);
+    return hrs + ':' + z(min) + ':' + z(secs);
+}
+
 function getShiftDuration(startTime, endTime) {
-    // TODO: Implement this function
+    let end = hr2sec(endTime);
+    const start = hr2sec(startTime);
+
+    if (end < start){
+    end = end + 86400;
+    }
+    let res = end - start;
+
+    return(res<0?'-':'') + sec2hr(Math.abs(res)); //i shoudl remmove the negative case since i fixed it but if it works it works
+    //too scaredto change this lmfao
 }
 
 // ============================================================
@@ -17,7 +50,8 @@ function getShiftDuration(startTime, endTime) {
 // Returns: string formatted as h:mm:ss
 // ============================================================
 function getIdleTime(startTime, endTime) {
-    // TODO: Implement this function
+    const res = hr2sec(endTime) - hr2sec(startTime);
+    return(res<0?'-':'') + sec2hr(Math.abs(res)); //i guess it works here 4 some reason
 }
 
 // ============================================================
