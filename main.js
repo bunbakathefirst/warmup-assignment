@@ -111,9 +111,66 @@ function metQuota(date, activeTime) {
 
 
 function addShiftRecord(textFile, shiftObj) {
+    let content = '';
+    try {
+        content = fs.readFileSync(textFile, 'utf-8');
+    } catch (err) {
+        content = '';
+    }
 
-    let tf = fs.readFileSync(textFile, 'utf8');
-    
+    let lines = content.split('\n').filter(line => line.trim() !== '');
+    let header = lines[0] || "DriverID,DriverName,Date,StartTime,EndTime,ShiftDuration,IdleTime,ActiveTime,MetQuota,HasBonus";
+    let records = lines.slice(1).map(line => line.split(','));
+
+    if (records.some(r => r[0] === shiftObj.driverID && r[2] === shiftObj.date)) {
+        return {};
+    }
+
+    const shiftDuration = getShiftDuration(shiftObj.startTime, shiftObj.endTime);
+    const idleTime = getIdleTime(shiftObj.startTime, shiftObj.endTime);
+    const activeSec = hr2sec(shiftDuration) - hr2sec(idleTime);
+    const activeTime = sec2hr(activeSec);
+    const quotaMet = metQuota(shiftObj.date, activeTime);
+
+    const newLine = [
+        shiftObj.driverID,
+        shiftObj.driverName,
+        shiftObj.date,
+        shiftObj.startTime,
+        shiftObj.endTime,
+        shiftDuration,
+        idleTime,
+        activeTime,
+        quotaMet,
+        false
+    ].join(',');
+
+    let lastIndex = -1;
+    for (let i = 0; i < records.length; i++) {
+        if (records[i][0] === shiftObj.driverID) lastIndex = i;
+    }
+
+    if (lastIndex === -1) {
+        records.push(newLine.split(','));
+    } else {
+        records.splice(lastIndex + 1, 0, newLine.split(','));
+    }
+
+    const updatedContent = [header, ...records.map(r => r.join(','))].join('\n') + '\n';
+    fs.writeFileSync(textFile, updatedContent, 'utf-8');
+
+    return {
+        driverID: shiftObj.driverID,
+        driverName: shiftObj.driverName,
+        date: shiftObj.date,
+        startTime: shiftObj.startTime,
+        endTime: shiftObj.endTime,
+        shiftDuration: shiftDuration,
+        idleTime: idleTime,
+        activeTime: activeTime,
+        metQuota: quotaMet,
+        hasBonus: false
+    };
 }
 
 // ============================================================
