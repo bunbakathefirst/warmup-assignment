@@ -23,7 +23,7 @@ function hr2sec(time){
     return h*3600 + m*60 + s;
 }
 function sec2hr(sec){
-    const z = n => (n < 10 ? '0' : '') + n; //check later!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    const z = n => (n < 10 ? '0' : '') + n;
     const hrs = (sec / 3600 | 0);
     const min = (sec % 3600 / 60 | 0);
     const secs = (sec % 60 | 0);
@@ -49,6 +49,7 @@ function getShiftDuration(startTime, endTime) {
 // endTime: (typeof string) formatted as hh:mm:ss am or hh:mm:ss pm
 // Returns: string formatted as h:mm:ss
 // ============================================================
+
 function getIdleTime(startTime, endTime) {
     const res = hr2sec(endTime) - hr2sec(startTime);
     return(res<0?'-':'') + sec2hr(Math.abs(res)); //i guess it works here 4 some reason
@@ -60,8 +61,20 @@ function getIdleTime(startTime, endTime) {
 // idleTime: (typeof string) formatted as h:mm:ss
 // Returns: string formatted as h:mm:ss
 // ============================================================
+
+function time2sec(time){
+    let [h,m,s] = time.split(':').map(Number);
+    return h*3600 + m*60 + s;
+}
+
 function getActiveTime(shiftDuration, idleTime) {
-    // TODO: Implement this function
+    let sd = time2sec(shiftDuration);
+    let it = time2sec(idleTime);
+
+    let res = sd - it;
+
+    const ress = sec2hr(res);
+    return ress;
 }
 
 // ============================================================
