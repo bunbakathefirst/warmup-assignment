@@ -51,8 +51,16 @@ function getShiftDuration(startTime, endTime) {
 // ============================================================
 
 function getIdleTime(startTime, endTime) {
-    const res = hr2sec(endTime) - hr2sec(startTime);
-    return(res<0?'-':'') + sec2hr(Math.abs(res)); //i guess it works here 4 some reason
+    const shiftStart = hr2sec(startTime);
+    const shiftEnd = hr2sec(endTime);
+    const deliveryStart = hr2sec("8:00:00 am");
+    const deliveryEnd = hr2sec("10:00:00 pm");
+    let idle = 0;
+
+    if (shiftStart < deliveryStart) idle += deliveryStart - shiftStart;
+    if (shiftEnd > deliveryEnd) idle += shiftEnd - deliveryEnd;
+
+    return sec2hr(idle);
 }
 
 // ============================================================
@@ -224,18 +232,18 @@ function countBonusPerMonth(textFile, driverID, month) {
     let lines = content.split('\n').filter(line => line.trim() !== '');
     if (lines.length <= 1) return -1;
 
-    let records = lines.slice(1).map(line => line.split(','));
+    let records = lines.slice(1).map(line => line.split(',').map(f => f.trim()));
 
     let driverExists = false;
     let count = 0;
 
+    const inputMonth = month.replace(/^0/, '');
+
     for (let r of records) {
-        if (r[0] === driverID) {
+        if (r[0] === driverID.trim()) {
             driverExists = true;
-            let recordMonth = r[2].split('-')[1]; // "yyyy-mm-dd" → month
-            if (recordMonth.startsWith('0')) recordMonth = recordMonth.slice(1);
-            let inputMonth = month.startsWith('0') ? month.slice(1) : month;
-            if (recordMonth === inputMonth && r[9] === 'true') count++;
+            let recordMonth = r[2].split('-')[1].replace(/^0/, '');
+            if (recordMonth === inputMonth && r[9].toLowerCase() === 'true') count++;
         }
     }
 
@@ -252,11 +260,7 @@ function countBonusPerMonth(textFile, driverID, month) {
 // ============================================================
 function getTotalActiveHoursPerMonth(textFile, driverID, month) {
     let content = '';
-    try {
-        content = fs.readFileSync(textFile, 'utf-8');
-    } catch (err) {
-        return "0:00:00";
-    }
+    content = fs.readFileSync(textFile, 'utf-8');
 
     let lines = content.split('\n').filter(line => line.trim() !== '');
     if (lines.length <= 1) return "0:00:00";
@@ -267,11 +271,12 @@ function getTotalActiveHoursPerMonth(textFile, driverID, month) {
     let driverExists = false;
 
     for (let r of records) {
-        if (r[0] === driverID) {
+        let recordDriverID = r[0].trim();
+        if (recordDriverID === driverID) {
             driverExists = true;
             let recordMonth = parseInt(r[2].split('-')[1], 10);
             if (recordMonth === month) {
-                totalSeconds += hr2sec(r[7]); // activeTime column
+                totalSeconds += hr2sec(r[7].trim());
             }
         }
     }
@@ -312,7 +317,7 @@ function getRequiredHoursPerMonth(textFile, rateFile, bonusCount, driverID, mont
             driverExists = true;
             let [year, mon, day] = r[2].split('-').map(Number);
             if (mon === month) {
-                let quota = 8*3600 + 24*60; // normal daily quota
+                let quota = 8*3600 + 24*60; // normal daily quota 8:24:00
                 if (year === 2025 && mon === 4 && day >= 10 && day <= 30) {
                     quota = 6*3600; // Eid period
                 }
@@ -348,7 +353,8 @@ function getNetPay(driverID, actualHours, requiredHours, rateFile) {
     let lines = content.split('\n').filter(line => line.trim() !== '');
     if (lines.length <= 1) return 0;
 
-    let records = lines.slice(1).map(line => line.split(','));
+    // Trim all values when parsing
+    let records = lines.slice(1).map(line => line.split(',').map(v => v.trim()));
     let driverRecord = records.find(r => r[0] === driverID);
     if (!driverRecord) return 0;
 
@@ -364,11 +370,12 @@ function getNetPay(driverID, actualHours, requiredHours, rateFile) {
     let missingSec = requiredSec - actualSec;
     if (missingSec <= 0) return basePay;
 
-    let missingHours = Math.floor(missingSec / 3600) - allowedMissing;
-    if (missingHours <= 0) return basePay;
+    let missingHoursTotal = Math.floor(missingSec / 3600);
+    let billableMissingHours = missingHoursTotal - allowedMissing;
+    if (billableMissingHours <= 0) return basePay;
 
     let deductionRatePerHour = Math.floor(basePay / 185);
-    let salaryDeduction = missingHours * deductionRatePerHour;
+    let salaryDeduction = billableMissingHours * deductionRatePerHour;
 
     return basePay - salaryDeduction;
 }
